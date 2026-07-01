@@ -26,7 +26,7 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
     return Scaffold(
       drawer: const AppDrawer(),
       appBar: AppBar(
-        title: const Text('Gauri Sadan'),
+        title: const Text('Building 1'),
       ),
       backgroundColor: AppColors.background,
       body: roomStatusesAsync.when(
@@ -43,7 +43,7 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: AppColors.primaryButton),
                   ),
                   const SizedBox(height: 8),
-                  const Text('Please ensure the database seed script has been executed to load Gauri Sadan.'),
+                  const Text('Please ensure the database seed script has been executed to load Building 1.'),
                 ],
               ),
             );
@@ -135,53 +135,10 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
         _buildFloorSection(
           title: 'Ground Floor',
           hindiTitle: 'भू तल',
-          content: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Left side rooms
-              SizedBox(
-                width: 150,
-                child: Column(
-                  children: [
-                    _buildSingleRoom('G-1', roomStatuses, isManager),
-                    const SizedBox(height: 8),
-                    _buildSingleRoom('G-2', roomStatuses, isManager),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Center Hall
-              Expanded(
-                child: Container(
-                  height: 208, // 100 + 100 + 8
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.primaryButton, width: 2),
-                    color: AppColors.surfaceSecondary.withValues(alpha: 0.3),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'Hall-1',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: AppColors.primaryButton,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              // Right side rooms (using G-3, G-4 based on logic)
-              SizedBox(
-                width: 150,
-                child: Column(
-                  children: [
-                    _buildSingleRoom('G-3', roomStatuses, isManager),
-                    const SizedBox(height: 8),
-                    _buildSingleRoom('G-4', roomStatuses, isManager),
-                  ],
-                ),
-              ),
-            ],
+          content: SizedBox(
+            height: 208,
+            width: double.infinity,
+            child: _buildSingleRoom('Hall-1', roomStatuses, isManager),
           ),
         ),
       ],

@@ -67,7 +67,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'सर्वभूतनिवासः',
+                'श्री शंकराचार्य मठ',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.displayLarge?.copyWith(
                   fontSize: 56,
@@ -76,13 +76,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                   height: 1.2,
                 ),
               ),
+              const SizedBox(height: 8),
+              Text(
+                'नरसिंह घाट रोड, उज्जैन',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontSize: 32,
+                  color: AppColors.primaryButton,
+                  fontWeight: FontWeight.w500,
+                  height: 1.2,
+                ),
+              ),
               const SizedBox(height: 16),
               Text(
                 'श्री दक्षिणामूर्तये नमः',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontSize: 28,
-                  color: AppColors.primaryButton.withValues(alpha: 0.8),
+                  fontSize: 24,
+                  color: AppColors.primaryButton.withValues(alpha: 0.7),
                   height: 1.2,
                 ),
               ),

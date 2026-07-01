@@ -65,10 +65,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'सर्वभूतनिवासः',
+                      'श्री शंकराचार्य मठ',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontSize: 48,
+                        fontSize: 32,
                         color: AppColors.primaryButton,
                         height: 1.2,
                       ),

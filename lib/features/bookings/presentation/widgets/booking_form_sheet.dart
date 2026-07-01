@@ -21,6 +21,8 @@ class _BookingFormSheetState extends State<BookingFormSheet> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _tariffController = TextEditingController();
+  final _amountPaidController = TextEditingController();
   
   DateTime? _checkInDate;
   DateTime? _checkOutDate;
@@ -35,6 +37,16 @@ class _BookingFormSheetState extends State<BookingFormSheet> {
     super.initState();
     _checkInDate = DateTime.now();
     _checkOutDate = DateTime.now().add(const Duration(days: 1));
+    _tariffController.text = widget.room.baseTariff.toInt().toString();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _tariffController.dispose();
+    _amountPaidController.dispose();
+    super.dispose();
   }
 
   int get _nights {
@@ -45,8 +57,10 @@ class _BookingFormSheetState extends State<BookingFormSheet> {
     return nights <= 0 ? 1 : nights;
   }
 
+  double get _currentTariff => double.tryParse(_tariffController.text) ?? widget.room.baseTariff;
+
   double get _totalAmount {
-    return widget.room.baseTariff * _nights;
+    return _currentTariff * _nights;
   }
 
   Future<void> _selectDate(BuildContext context, bool isCheckIn) async {
@@ -85,6 +99,8 @@ class _BookingFormSheetState extends State<BookingFormSheet> {
         checkOutDate: _checkOutDate!,
         paymentStatus: _paymentStatus,
         paymentMode: _paymentMode,
+        overriddenTariff: _currentTariff,
+        partialAmountPaid: double.tryParse(_amountPaidController.text),
       );
       widget.onBookingComplete();
       if (mounted) Navigator.pop(context);
@@ -113,7 +129,18 @@ class _BookingFormSheetState extends State<BookingFormSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text('Book Room ${widget.room.roomNumber}', style: Theme.of(context).textTheme.titleLarge),
-              Text('Tariff: ₹${widget.room.baseTariff}/night', style: Theme.of(context).textTheme.bodyMedium),
+              if (widget.room.category != 'Hall')
+                Text('Tariff: ₹${widget.room.baseTariff}/night', style: Theme.of(context).textTheme.bodyMedium),
+              if (widget.room.category == 'Hall')
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: TextFormField(
+                    controller: _tariffController,
+                    decoration: const InputDecoration(labelText: 'Custom Tariff/Night', border: OutlineInputBorder()),
+                    keyboardType: TextInputType.number,
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
               const SizedBox(height: 16),
               
               TextFormField(
@@ -174,7 +201,7 @@ class _BookingFormSheetState extends State<BookingFormSheet> {
                     child: DropdownButtonFormField<String>(
                       value: _paymentStatus,
                       decoration: const InputDecoration(labelText: 'Payment', border: OutlineInputBorder()),
-                      items: ['Paid', 'Unpaid'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                      items: ['Paid', 'Partial', 'Unpaid'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
                       onChanged: (v) => setState(() => _paymentStatus = v!),
                     ),
                   ),
@@ -184,11 +211,20 @@ class _BookingFormSheetState extends State<BookingFormSheet> {
                       value: _paymentMode,
                       decoration: const InputDecoration(labelText: 'Mode', border: OutlineInputBorder()),
                       items: ['Cash', 'Online'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                      onChanged: _paymentStatus == 'Paid' ? (v) => setState(() => _paymentMode = v!) : null,
+                      onChanged: (_paymentStatus == 'Paid' || _paymentStatus == 'Partial') ? (v) => setState(() => _paymentMode = v!) : null,
                     ),
                   ),
                 ],
               ),
+              if (_paymentStatus == 'Partial') ...[
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _amountPaidController,
+                  decoration: const InputDecoration(labelText: 'Amount Paid Now', border: OutlineInputBorder()),
+                  keyboardType: TextInputType.number,
+                  validator: (v) => _paymentStatus == 'Partial' && (v == null || v.isEmpty) ? 'Required' : null,
+                ),
+              ],
               
               const SizedBox(height: 24),
               ElevatedButton(
@@ -226,11 +262,13 @@ class _BookingFormSheetState extends State<BookingFormSheet> {
             _ConfirmRow('Check-in', DateFormat('MMM dd, yyyy').format(_checkInDate!)),
             _ConfirmRow('Check-out', DateFormat('MMM dd, yyyy').format(_checkOutDate!)),
             _ConfirmRow('Duration', '$_nights Nights'),
-            _ConfirmRow('Tariff/Night', '₹${widget.room.baseTariff}'),
+            _ConfirmRow('Tariff/Night', '₹$_currentTariff'),
             const Divider(),
             _ConfirmRow('Total Amount', '₹$_totalAmount', isBold: true),
-            _ConfirmRow('Payment', '$_paymentStatus${_paymentStatus == 'Paid' ? ' via $_paymentMode' : ''}', 
-              color: _paymentStatus == 'Paid' ? Colors.green : Colors.red),
+            _ConfirmRow('Payment', '$_paymentStatus${(_paymentStatus == 'Paid' || _paymentStatus == 'Partial') ? ' via $_paymentMode' : ''}', 
+              color: _paymentStatus == 'Paid' ? Colors.green : (_paymentStatus == 'Partial' ? Colors.orange : Colors.red)),
+            if (_paymentStatus == 'Partial')
+              _ConfirmRow('Amount Paid', '₹${_amountPaidController.text}', color: Colors.orange, isBold: true),
             
             const SizedBox(height: 24),
             Row(

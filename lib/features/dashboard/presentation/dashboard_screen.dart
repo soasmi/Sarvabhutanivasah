@@ -79,7 +79,7 @@ class DashboardScreen extends ConsumerWidget {
                 return ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    _buildOccupancyByTariffCards(stats, context),
+                    _buildOccupancyByBuildingCards(stats, context),
                     const SizedBox(height: 24),
                     _buildRevenueCard(stats, context, viewType),
                     const SizedBox(height: 32),
@@ -96,7 +96,7 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildOccupancyByTariffCards(DashboardStats stats, BuildContext context) {
+  Widget _buildOccupancyByBuildingCards(DashboardStats stats, BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cardWidth = constraints.maxWidth > 600 ? (constraints.maxWidth - 16) / 2 : constraints.maxWidth;
@@ -104,19 +104,19 @@ class DashboardScreen extends ConsumerWidget {
           spacing: 16,
           runSpacing: 16,
           children: [
-            _buildTariffCard(
+            _buildBuildingCard(
               context: context,
-              title: '₹1200 Rooms',
-              booked: stats.booked1200Rooms,
-              total: stats.total1200Rooms,
+              title: 'Building 1',
+              booked: stats.b1BookedRooms,
+              total: stats.b1TotalRooms,
               color: AppColors.accentGold,
               width: cardWidth,
             ),
-            _buildTariffCard(
+            _buildBuildingCard(
               context: context,
-              title: '₹1500 Rooms',
-              booked: stats.booked1500Rooms,
-              total: stats.total1500Rooms,
+              title: 'Building 2',
+              booked: stats.b2BookedRooms,
+              total: stats.b2TotalRooms,
               color: AppColors.primaryButton,
               width: cardWidth,
             ),
@@ -126,7 +126,7 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTariffCard({
+  Widget _buildBuildingCard({
     required BuildContext context,
     required String title,
     required int booked,
@@ -211,36 +211,36 @@ class DashboardScreen extends ConsumerWidget {
             Center(
               child: Column(
                 children: [
-                  Text('Total Collections', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.textSecondary)),
+                  Text('Grand Total Collections', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.textSecondary)),
                   const SizedBox(height: 8),
-                  Text('₹${stats.revenueReceived.toStringAsFixed(0)}', style: Theme.of(context).textTheme.displayLarge?.copyWith(color: AppColors.primaryButton, fontWeight: FontWeight.bold)),
+                  Text('₹${stats.totalRevenueReceived.toStringAsFixed(0)}', style: Theme.of(context).textTheme.displayLarge?.copyWith(color: AppColors.primaryButton, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  Text('Net Earnings in Cash $labelSuffix', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.textSecondary)),
+                  const SizedBox(height: 4),
+                  Text('₹${(stats.totalCashRevenue - stats.expensesInCash).toStringAsFixed(0)}', style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: Colors.green, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 32),
+            const Divider(),
+            const SizedBox(height: 16),
+            Text('Building 1 Total: ₹${(stats.b1CashRevenue + stats.b1OnlineRevenue).toStringAsFixed(0)}', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.primaryButton, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(
-                  child: _buildRevenueTypeIndicator(
-                    context: context,
-                    title: 'Cash',
-                    amount: stats.cashRevenue,
-                    total: stats.revenueReceived,
-                    color: Colors.green,
-                    icon: Icons.payments,
-                  ),
-                ),
-                Container(width: 1, height: 60, color: AppColors.divider, margin: const EdgeInsets.symmetric(horizontal: 16)),
-                Expanded(
-                  child: _buildRevenueTypeIndicator(
-                    context: context,
-                    title: 'Online',
-                    amount: stats.onlineRevenue,
-                    total: stats.revenueReceived,
-                    color: Colors.blue,
-                    icon: Icons.qr_code,
-                  ),
-                ),
+                Expanded(child: _buildRevenueTypeIndicator(context: context, title: 'Cash', amount: stats.b1CashRevenue, total: stats.b1CashRevenue + stats.b1OnlineRevenue, color: Colors.green, icon: Icons.payments)),
+                Container(width: 1, height: 40, color: AppColors.divider, margin: const EdgeInsets.symmetric(horizontal: 16)),
+                Expanded(child: _buildRevenueTypeIndicator(context: context, title: 'Online', amount: stats.b1OnlineRevenue, total: stats.b1CashRevenue + stats.b1OnlineRevenue, color: Colors.blue, icon: Icons.qr_code)),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Text('Building 2 Total: ₹${(stats.b2CashRevenue + stats.b2OnlineRevenue).toStringAsFixed(0)}', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.primaryButton, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: _buildRevenueTypeIndicator(context: context, title: 'Cash', amount: stats.b2CashRevenue, total: stats.b2CashRevenue + stats.b2OnlineRevenue, color: Colors.green, icon: Icons.payments)),
+                Container(width: 1, height: 40, color: AppColors.divider, margin: const EdgeInsets.symmetric(horizontal: 16)),
+                Expanded(child: _buildRevenueTypeIndicator(context: context, title: 'Online', amount: stats.b2OnlineRevenue, total: stats.b2CashRevenue + stats.b2OnlineRevenue, color: Colors.blue, icon: Icons.qr_code)),
               ],
             ),
           ],

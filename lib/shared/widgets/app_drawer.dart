@@ -76,16 +76,21 @@ class AppDrawer extends ConsumerWidget {
                     children: [
                       ListTile(
                         contentPadding: const EdgeInsets.only(left: 72, right: 16),
-                        title: const Text('Gauri Sadan', style: TextStyle(color: AppColors.textPrimary)),
+                        title: const Text('Building 1', style: TextStyle(color: AppColors.textPrimary)),
                         onTap: () => context.go('/rooms'),
                       ),
                       ListTile(
                         contentPadding: const EdgeInsets.only(left: 72, right: 16),
-                        title: const Text('Katyayani Sadan', style: TextStyle(color: AppColors.textPrimary)),
+                        title: const Text('Building 2', style: TextStyle(color: AppColors.textPrimary)),
                         onTap: () => context.go('/katyayani'),
                       ),
                     ],
                   ),
+                ),
+                buildDrawerItem(
+                  icon: Icons.receipt_long,
+                  title: 'Expenses',
+                  onTap: () => context.go('/expenses'),
                 ),
                 const Divider(),
                 buildDrawerItem(

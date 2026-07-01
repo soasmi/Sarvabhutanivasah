@@ -6,36 +6,46 @@ class DashboardStats {
   final int availableRooms;
   final int reservedRooms;
   final int occupiedRooms;
-  
-  final int total1200Rooms;
-  final int booked1200Rooms;
-  
-  final int total1500Rooms;
-  final int booked1500Rooms;
-  
+
+  final int b1TotalRooms;
+  final int b1BookedRooms;
+  final double b1CashRevenue;
+  final double b1OnlineRevenue;
+
+  final int b2TotalRooms;
+  final int b2BookedRooms;
+  final double b2CashRevenue;
+  final double b2OnlineRevenue;
+
   final int todaysCheckIns;
   final int todaysCheckOuts;
-  
-  final double revenueReceived;
-  final double cashRevenue;
-  final double onlineRevenue;
-  
+
+  final double totalCashRevenue;
+  final double totalOnlineRevenue;
+  final double totalRevenueReceived;
+  final double expensesInCash;
+
   final List<Map<String, dynamic>> activeBookingsList;
-  
+
   DashboardStats({
     required this.totalRooms,
     required this.availableRooms,
     required this.reservedRooms,
     required this.occupiedRooms,
-    required this.total1200Rooms,
-    required this.booked1200Rooms,
-    required this.total1500Rooms,
-    required this.booked1500Rooms,
+    required this.b1TotalRooms,
+    required this.b1BookedRooms,
+    required this.b1CashRevenue,
+    required this.b1OnlineRevenue,
+    required this.b2TotalRooms,
+    required this.b2BookedRooms,
+    required this.b2CashRevenue,
+    required this.b2OnlineRevenue,
     required this.todaysCheckIns,
     required this.todaysCheckOuts,
-    required this.revenueReceived,
-    required this.cashRevenue,
-    required this.onlineRevenue,
+    required this.totalCashRevenue,
+    required this.totalOnlineRevenue,
+    required this.totalRevenueReceived,
+    required this.expensesInCash,
     required this.activeBookingsList,
   });
 }
@@ -46,7 +56,7 @@ class DashboardService {
   Future<DashboardStats> fetchStats(DashboardViewType viewType) async {
     final now = DateTime.now();
     final todayStr = now.toIso8601String().split('T')[0];
-    
+
     String startDateStr = todayStr;
     String endDateStr = todayStr;
 
@@ -58,79 +68,106 @@ class DashboardService {
       endDateStr = DateTime(now.year, 12, 31).toIso8601String().split('T')[0];
     }
 
-    // 1. Fetch Rooms Count & Tariffs
-    final roomsRes = await _supabase.from('rooms').select('id, base_tariff');
-    final roomsList = roomsRes as List;
-    final int totalRooms = roomsList.length;
-    
-    int total1200 = 0;
-    int total1500 = 0;
-    for (var r in roomsList) {
-      if (r['base_tariff'] == 1200 || r['base_tariff'] == 1200.0) total1200++;
-      if (r['base_tariff'] == 1500 || r['base_tariff'] == 1500.0) total1500++;
+    // Map rooms to buildings
+    final buildingsRes = await _supabase.from('buildings').select();
+    final floorsRes = await _supabase.from('floors').select();
+    final roomsRes = await _supabase.from('rooms').select();
+
+    final Map<String, String> floorIdToBuildingName = {};
+    for (var f in floorsRes as List) {
+      Map<String, dynamic>? b;
+      for (var building in buildingsRes as List) {
+        if (building['id'] == f['building_id']) {
+          b = building as Map<String, dynamic>;
+          break;
+        }
+      }
+      if (b != null) floorIdToBuildingName[f['id']] = b['name'];
     }
 
-    // 2. Fetch Active Bookings for Occupancy logic
+    final Map<String, String> roomIdToBuildingName = {};
+    int totalRooms = 0, b1TotalRooms = 0, b2TotalRooms = 0;
+
+    for (var r in roomsRes as List) {
+      final bName = floorIdToBuildingName[r['floor_id']] ?? 'Unknown';
+      roomIdToBuildingName[r['id']] = bName;
+      totalRooms++;
+      if (bName == 'Building 1') b1TotalRooms++;
+      if (bName == 'Building 2') b2TotalRooms++;
+    }
+
+    // Fetch Active Bookings
     final activeBookingsRes = await _supabase
         .from('bookings')
-        .select('*, rooms!inner(base_tariff, room_number), guests!inner(name)')
+        .select('*, rooms!inner(room_number), guests!inner(name)')
         .lte('check_in_date', todayStr)
         .gte('check_out_date', todayStr)
         .neq('status', 'Cancelled')
         .neq('status', 'Completed');
 
-    int reservedRooms = 0;
-    int occupiedRooms = 0;
-    int booked1200 = 0;
-    int booked1500 = 0;
+    int reservedRooms = 0, occupiedRooms = 0;
+    int b1Booked = 0, b2Booked = 0;
 
     for (var b in activeBookingsRes as List) {
       final status = b['status'];
-      final tariff = b['rooms']['base_tariff'];
-      
+      final bName = roomIdToBuildingName[b['room_id']];
+
       if (status == 'Reserved') reservedRooms++;
       if (status == 'Checked-In') occupiedRooms++;
-      
+
       if (status == 'Reserved' || status == 'Checked-In') {
-        if (tariff == 1200 || tariff == 1200.0) booked1200++;
-        if (tariff == 1500 || tariff == 1500.0) booked1500++;
+        if (bName == 'Building 1') b1Booked++;
+        if (bName == 'Building 2') b2Booked++;
       }
     }
 
     final availableRooms = totalRooms - reservedRooms - occupiedRooms;
 
-    // 3. Fetch Check-ins & Check-outs within the viewType date range
-    final checkInsRes = await _supabase
-        .from('bookings')
-        .select()
-        .gte('check_in_date', startDateStr)
-        .lte('check_in_date', endDateStr)
-        .neq('status', 'Cancelled');
-        
-    final checkOutsRes = await _supabase
-        .from('bookings')
-        .select()
-        .gte('check_out_date', startDateStr)
-        .lte('check_out_date', endDateStr)
-        .neq('status', 'Cancelled');
+    // Check-ins & Check-outs
+    final checkInsRes = await _supabase.from('bookings').select().gte('check_in_date', startDateStr).lte('check_in_date', endDateStr).neq('status', 'Cancelled');
+    final checkOutsRes = await _supabase.from('bookings').select().gte('check_out_date', startDateStr).lte('check_out_date', endDateStr).neq('status', 'Cancelled');
 
-    // 4. Fetch Revenue Received within the viewType date range
+    // Revenue
     final paymentsRes = await _supabase
         .from('payment_transactions')
-        .select()
+        .select('*, bookings!inner(room_id)')
         .gte('payment_date', startDateStr)
         .lte('payment_date', endDateStr);
 
-    double cashRevenue = 0;
-    double onlineRevenue = 0;
+    double b1Cash = 0, b1Online = 0;
+    double b2Cash = 0, b2Online = 0;
+    double totalCash = 0, totalOnline = 0;
 
     for (var p in paymentsRes as List) {
       final amount = double.parse(p['amount'].toString());
-      if (p['payment_mode'] == 'Cash') {
-        cashRevenue += amount;
-      } else if (p['payment_mode'] == 'Online') {
-        onlineRevenue += amount;
+      final mode = p['payment_mode'];
+      final roomId = p['bookings']['room_id'];
+      final bName = roomIdToBuildingName[roomId];
+
+      if (mode == 'Cash') {
+        totalCash += amount;
+        if (bName == 'Building 1') b1Cash += amount;
+        if (bName == 'Building 2') b2Cash += amount;
+      } else if (mode == 'Online') {
+        totalOnline += amount;
+        if (bName == 'Building 1') b1Online += amount;
+        if (bName == 'Building 2') b2Online += amount;
       }
+    }
+
+    final totalRevenueReceived = totalCash + totalOnline;
+
+    // Expenses in Cash
+    final expensesRes = await _supabase
+        .from('expenses')
+        .select('amount')
+        .eq('payment_mode', 'Cash')
+        .gte('created_at', '${startDateStr}T00:00:00Z')
+        .lte('created_at', '${endDateStr}T23:59:59Z');
+
+    double expensesInCash = 0;
+    for (var e in expensesRes as List) {
+      expensesInCash += double.parse(e['amount'].toString());
     }
 
     return DashboardStats(
@@ -138,15 +175,20 @@ class DashboardService {
       availableRooms: availableRooms,
       reservedRooms: reservedRooms,
       occupiedRooms: occupiedRooms,
-      total1200Rooms: total1200,
-      booked1200Rooms: booked1200,
-      total1500Rooms: total1500,
-      booked1500Rooms: booked1500,
+      b1TotalRooms: b1TotalRooms,
+      b1BookedRooms: b1Booked,
+      b1CashRevenue: b1Cash,
+      b1OnlineRevenue: b1Online,
+      b2TotalRooms: b2TotalRooms,
+      b2BookedRooms: b2Booked,
+      b2CashRevenue: b2Cash,
+      b2OnlineRevenue: b2Online,
       todaysCheckIns: (checkInsRes as List).length,
       todaysCheckOuts: (checkOutsRes as List).length,
-      revenueReceived: cashRevenue + onlineRevenue,
-      cashRevenue: cashRevenue,
-      onlineRevenue: onlineRevenue,
+      totalCashRevenue: totalCash,
+      totalOnlineRevenue: totalOnline,
+      totalRevenueReceived: totalRevenueReceived,
+      expensesInCash: expensesInCash,
       activeBookingsList: (activeBookingsRes as List).cast<Map<String, dynamic>>(),
     );
   }

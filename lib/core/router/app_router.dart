@@ -9,6 +9,7 @@ import '../../features/auth/presentation/login_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/rooms/presentation/rooms_screen.dart';
 import '../../features/rooms/presentation/room_mapping_screen.dart';
+import '../../features/expenses/presentation/expenses_screen.dart';
 import '../../shared/widgets/coming_soon_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -71,9 +72,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/katyayani',
         builder: (context, state) => const ComingSoonScreen(
-          title: 'Katyayani Sadan',
-          icon: Icons.apartment,
-          description: 'Katyayani Sadan functionality is currently under development.',
+          title: 'Building 2',
+          icon: Icons.domain,
+          description: 'Building 2 functionality is currently under development.',
         ),
       ),
       GoRoute(
@@ -93,6 +94,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           icon: Icons.settings,
           description: 'System configuration and user management are currently under development. Here you will be able to configure tariffs, users, and app preferences.',
         ),
+      ),
+      GoRoute(
+        path: '/expenses',
+        builder: (context, state) => const ExpensesScreen(),
       ),
     ],
   );

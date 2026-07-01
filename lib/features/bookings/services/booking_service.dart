@@ -10,8 +10,10 @@ class BookingService {
     required String guestPhone,
     required DateTime checkInDate,
     required DateTime checkOutDate,
-    required String paymentStatus, // 'Paid' or 'Unpaid'
+    required String paymentStatus, // 'Paid', 'Partial', or 'Unpaid'
     required String paymentMode,   // 'Cash' or 'Online'
+    double? overriddenTariff,
+    double? partialAmountPaid,
   }) async {
     // 1. Calculate dates and amount
     final d1 = DateTime.utc(checkInDate.year, checkInDate.month, checkInDate.day);
@@ -19,7 +21,8 @@ class BookingService {
     int days = d2.difference(d1).inDays;
     if (days <= 0) days = 1; // Minimum 1 day charge
     
-    final double totalAmount = room.baseTariff * days;
+    final tariff = overriddenTariff ?? room.baseTariff;
+    final double totalAmount = tariff * days;
 
     // 2. Perform transaction (RPC or direct depending on DB rules)
     // Supabase JS doesn't have native transaction blocks, but we can do sequential inserts 
@@ -57,7 +60,7 @@ class BookingService {
           'check_in_date': checkInDate.toIso8601String().split('T')[0],
           'check_out_date': checkOutDate.toIso8601String().split('T')[0],
           'status': 'Reserved',
-          'tariff_at_booking': room.baseTariff,
+          'tariff_at_booking': tariff,
           'total_amount': totalAmount,
           'payment_status': paymentStatus,
           'created_by': _supabase.auth.currentUser!.id,
@@ -65,15 +68,19 @@ class BookingService {
         .select()
         .single();
 
-    // If Paid, automatically create Payment Transaction
-    if (paymentStatus == 'Paid') {
-      await _supabase.from('payment_transactions').insert({
-        'booking_id': bookingRes['id'],
-        'amount': totalAmount,
-        'payment_date': DateTime.now().toIso8601String().split('T')[0],
-        'payment_mode': paymentMode,
-        'recorded_by': _supabase.auth.currentUser!.id,
-      });
+    // If Paid or Partial, automatically create Payment Transaction
+    if (paymentStatus == 'Paid' || paymentStatus == 'Partial') {
+      final amountToRecord = paymentStatus == 'Paid' ? totalAmount : (partialAmountPaid ?? 0.0);
+      
+      if (amountToRecord > 0) {
+        await _supabase.from('payment_transactions').insert({
+          'booking_id': bookingRes['id'],
+          'amount': amountToRecord,
+          'payment_date': DateTime.now().toIso8601String().split('T')[0],
+          'payment_mode': paymentMode,
+          'recorded_by': _supabase.auth.currentUser!.id,
+        });
+      }
     }
   }
 
@@ -92,6 +99,7 @@ class BookingService {
     await _supabase.from('payment_transactions').insert({
       'booking_id': bookingId,
       'amount': amount,
+      'payment_date': DateTime.now().toIso8601String().split('T')[0],
       'payment_mode': mode,
       'recorded_by': _supabase.auth.currentUser!.id,
     });

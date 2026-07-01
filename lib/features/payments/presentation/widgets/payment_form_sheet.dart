@@ -21,6 +21,19 @@ class _PaymentFormSheetState extends State<PaymentFormSheet> {
   String _paymentStatus = 'Paid';
   String _paymentMode = 'Cash';
   bool _isSubmitting = false;
+  final _amountController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController.text = widget.totalAmount.toString();
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
 
   void _submit() async {
     if (_paymentStatus == 'Unpaid') {
@@ -30,9 +43,10 @@ class _PaymentFormSheetState extends State<PaymentFormSheet> {
 
     setState(() => _isSubmitting = true);
     try {
+      final amountPaid = double.tryParse(_amountController.text) ?? widget.totalAmount;
       await BookingService().recordPayment(
         widget.bookingId,
-        widget.totalAmount,
+        amountPaid,
         _paymentMode,
       );
       widget.onPaymentComplete();
@@ -57,8 +71,15 @@ class _PaymentFormSheetState extends State<PaymentFormSheet> {
         children: [
           Text('Record Payment', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
-          Text('Amount Due: ₹${widget.totalAmount}', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 24),
+          Text('Total Bill Amount: ₹${widget.totalAmount}', style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _amountController,
+            decoration: const InputDecoration(labelText: 'Amount Paying Now', border: OutlineInputBorder()),
+            keyboardType: TextInputType.number,
+            validator: (v) => v!.isEmpty ? 'Required' : null,
+          ),
+          const SizedBox(height: 16),
           
           Row(
             children: [
@@ -66,7 +87,7 @@ class _PaymentFormSheetState extends State<PaymentFormSheet> {
                 child: DropdownButtonFormField<String>(
                   value: _paymentStatus,
                   decoration: const InputDecoration(labelText: 'Payment Status', border: OutlineInputBorder()),
-                  items: ['Paid', 'Unpaid'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                  items: ['Paid', 'Partial', 'Unpaid'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
                   onChanged: (v) => setState(() => _paymentStatus = v!),
                 ),
               ),
@@ -76,7 +97,7 @@ class _PaymentFormSheetState extends State<PaymentFormSheet> {
                   value: _paymentMode,
                   decoration: const InputDecoration(labelText: 'Mode', border: OutlineInputBorder()),
                   items: ['Cash', 'Online'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                  onChanged: _paymentStatus == 'Paid' ? (v) => setState(() => _paymentMode = v!) : null,
+                  onChanged: (_paymentStatus == 'Paid' || _paymentStatus == 'Partial') ? (v) => setState(() => _paymentMode = v!) : null,
                 ),
               ),
             ],
